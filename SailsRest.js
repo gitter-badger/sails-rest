@@ -29,21 +29,19 @@ module.exports = (function() {
   /**
    * Format result object according to schema
    * @param {Object} result
-   * @param {String} collectionName - collection the result object belongs to
+   * @param {Object} collection - collection the result object belongs to
    * @param {Object} config - connection configuration
    * @param {Object} definition - collection definition
    * @returns {Object}
    */
-  function formatResult(result, collectionName, config, definition) {
+  function formatResult(result, collection, config, definition) {
     if (_.isFunction(config.beforeFormatResult)) {
       result = config.beforeFormatResult(result);
     }
 
-    _.each(definition, function(def, key) {
-      if (def.type.match(/date/i)) {
-        result[key] = new Date(result[key] ? result[key] : null);
-      }
-    });
+    // Unserialize values
+    result = collection._transformer.unserialize(result);
+    collection._cast.run(result);
 
     if (_.isFunction(config.afterFormatResult)) {
       result = config.afterFormatResult(result);
@@ -55,18 +53,18 @@ module.exports = (function() {
   /**
    * Format results according to schema
    * @param {Array} results - objects (model instances)
-   * @param {String} collectionName - collection the result object belongs to
+   * @param {Object} collection - collection the result object belongs to
    * @param {Object} config - connection configuration
    * @param {Object} definition - collection definition
    * @returns {Array}
    */
-  function formatResults(results, collectionName, config, definition) {
+  function formatResults(results, collection, config, definition) {
     if (_.isFunction(config.beforeFormatResults)) {
       results = config.beforeFormatResults(results);
     }
 
-    results.forEach(function(result) {
-      formatResult(result, collectionName, config, definition);
+    results = _.map(results, function(result) {
+      return formatResult(result, collection, config, definition);
     });
 
     if (_.isFunction(config.afterFormatResults)) {
@@ -79,16 +77,16 @@ module.exports = (function() {
   /**
    * Ensure results are contained in an array. Resolves variants in API responses such as `results` or `objects` instead of `[.....]`
    * @param {Object|Array} data - response data to format as results array
-   * @param {String} collectionName - collection the result object belongs to
+   * @param {Object} collection - collection the result object belongs to
    * @param {Object} config - connection configuration
    * @param {Object} definition - collection definition
    * @returns {Object|Array}
    */
-  function getResultsAsCollection(data, collectionName, config, definition) {
+  function getResultsAsCollection(data, collection, config, definition) {
     var d = (data.objects || data.results || data),
       a = _.isArray(d) ? d : [d];
 
-    return formatResults(a, collectionName, config, definition);
+    return formatResults(a, collection, config, definition);
   }
 
   /**
@@ -119,7 +117,8 @@ module.exports = (function() {
       cache = connections[identity].cache,
       config = _.cloneDeep(connections[identity].config),
       connection = connections[identity].connection,
-      definition = connections[identity].definition,
+      collection = connections[identity].collections[collectionName],
+      definition = collection.definition,
       restMethod = config.methods[methodName],
       pathname;
 
@@ -222,12 +221,12 @@ module.exports = (function() {
           callback(restError);
         } else {
           if (methodName === 'find') {
-            r = getResultsAsCollection(data, collectionName, config, definition);
+            r = getResultsAsCollection(data, collection, config, definition);
             if (cache) {
               cache.engine.set(uri, r);
             }
           } else {
-            r = formatResult(data, collectionName, config, definition);
+            r = formatResult(data, collection, config, definition);
             if (cache) {
               cache.engine.del(uri);
             }
@@ -288,6 +287,7 @@ module.exports = (function() {
 
       instance = {
         config: config,
+        collections: collections,
         connection: restify[clientMethod]({
           url: url.format({
             protocol: config.protocol,
