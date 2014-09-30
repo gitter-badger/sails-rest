@@ -14,7 +14,6 @@ app.use(multer());
 
 app.get('/api/v1/:collection', function(req, res){
   var collection = req.params.collection,
-      id = parseInt(req.params.id, 10),
       query = _.isEmpty(req.query) ? null : req.query,
       r = [];
 
@@ -83,20 +82,26 @@ app.put('/api/v1/:collection/:id', function(req, res){
   res.json(r);
 });
 
+app.delete('/api/v1/:collection', function(req, res){
+  var collection = req.params.collection,
+      r = [];
+
+  if (Models[collection]) {
+    r = Models[collection].splice(0);
+  }
+
+  res.json(r);
+});
+
 app.delete('/api/v1/:collection/:id', function(req, res){
   var collection = req.params.collection,
       id = parseInt(req.params.id, 10),
       query = {id: id},
-      r = {};
+      r = [];
 
   if (Models[collection]) {
-    r = _.find(Models[collection], query);
-
-    var index = _.indexOf(Models[collection], r);
-
-    if (index > -1) {
-      Models[collection].splice(index, 1);
-    }
+    r = _.filter(Models[collection], query);
+    Models[collection] = _.difference(Models[collection], r);
   }
 
   res.json(r);
