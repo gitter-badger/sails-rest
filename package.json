@@ -24,23 +24,24 @@
   "license": "MIT",
   "readmeFilename": "README.md",
   "dependencies": {
-    "async": "0.1.22",
+    "async": "^0.9.0",
     "lodash": "^2.4.1",
-    "restify": "2.6.0",
+    "restify": "^2.8.2",
     "underscore.inflections": "^0.2.1",
     "underscore.string": "^2.3.3",
     "waterline-errors": "^0.10.0"
   },
   "devDependencies": {
     "body-parser": "^1.9.0",
-    "captains-log": "^0.11.8",
+    "captains-log": "~0.11.0",
     "express": "3.x",
-    "mocha": "^1.10.0",
+    "mocha": "*",
     "multer": "^0.1.4",
-    "waterline-adapter-tests": "^0.10.0"
+    "waterline-adapter-tests": "~0.10.0"
   },
   "waterlineAdapter": {
-    "waterlineVersion": "^0.10.0",
+    "waterlineVersion": "~0.10.0",
+    "type": "Rest",
     "interfaces": [
       "semantic",
       "queryable"
